@@ -52,9 +52,8 @@ private:
     std::string encoded_data;
     std::map<char, std::string> codes;
     std::map<std::string, char> reverse;
-    std::map<char, unsigned short> frequency_map;
+    std::map<char, unsigned long> frequency_map;
     std::priority_queue<Node *, std::vector<Node *>, MinHeapComparator> min_heap;
-
 public:
     HuffmanCompression()
     {
@@ -90,6 +89,46 @@ public:
 
         PrintCodes();
     }
+    void Decompress(const std::string &input_path)
+    {
+        std::ifstream decomp(input_path, std::ios::out | std::ios::binary);
+        decomp.unsetf(std::ios::skipws);
+
+        // get its size:
+        std::streampos fileSize;
+
+        decomp.seekg(0, std::ios::end);
+        fileSize = decomp.tellg();
+        decomp.seekg(0, std::ios::beg);
+
+        // reserve capacity
+        std::vector<unsigned char> vec;
+        vec.reserve(fileSize);
+
+        // read the data:
+        vec.insert(vec.begin(),
+                std::istream_iterator<unsigned char>(decomp),
+                std::istream_iterator<unsigned char>());
+
+        unsigned char pad = vec[0];
+
+        std::string decomp_data = "";
+        for (unsigned int i = 0; i < vec.size(); i++){
+            unsigned char c = vec[i];
+            std::string b = "";
+            for (char j = 0; j < 8; j++)
+            {
+                b.insert(0, (vec[i] & 1 ? "1" : "0"));
+                vec[i] >>= 1;
+            }
+            decomp_data += b;
+        }
+
+        decomp_data.erase(0,8);
+        decomp_data.erase(decomp_data.size()-pad);
+        std::string encoded = decomp_data;
+        // TODO: decompress
+    }
 private:
     void ReadData()
     {
@@ -109,7 +148,7 @@ private:
     }
     void FillMinHeap()
     {
-        for (const std::pair<char, unsigned short> &p : this->frequency_map)
+        for (const std::pair<char, unsigned long> &p : this->frequency_map)
         {
             Node *n = new Node;
             n->ch = p.first;
@@ -187,5 +226,6 @@ int main(int argc, char *argv[])
     HuffmanCompression hc;
     // hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/README.md");
     hc.Compress("/Users/james/Downloads/big.txt");
+    hc.Decompress("/Users/james/Downloads/big.bin");
     return 0;
 }
