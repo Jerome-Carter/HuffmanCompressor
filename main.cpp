@@ -124,10 +124,22 @@ public:
             decomp_data += b;
         }
 
-        decomp_data.erase(0,8);
-        decomp_data.erase(decomp_data.size()-pad);
         std::string encoded = decomp_data;
-        // TODO: decompress
+        encoded.erase(0,8);
+        encoded.erase(encoded.size()-pad);
+        
+        std::string current_code = "";
+        std::string decoded = "";
+        for (char b : encoded) {
+            current_code += b;
+            if (this->reverse.find(current_code) != this->reverse.end()) {
+                char c = this->reverse[current_code];
+                decoded += c;
+                current_code = "";
+            }
+        }
+
+        // write data out
     }
 private:
     void ReadData()
