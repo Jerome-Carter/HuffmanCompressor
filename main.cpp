@@ -7,11 +7,12 @@
 #include <algorithm>
 #include <bits/stdc++.h>
 #include <stdlib.h>
+#include <chrono>
 
 struct Node
 {
     char ch = '\0';
-    unsigned int frequency = 0;
+    unsigned long frequency = 0;
     Node *left = nullptr;
     Node *right = nullptr;
     friend std::ostream &operator<<(std::ostream &os, const Node &n)
@@ -80,7 +81,7 @@ public:
         GenerateHuffmanTree();
         Node *root = this->min_heap.top();
         this->min_heap.pop();
-        PrintTree(root);
+        // PrintTree(root);
         std::string current_code = "";
         GenerateHuffmanCodes(root, current_code);
 
@@ -103,11 +104,6 @@ public:
 private:
     void ReadData()
     {
-        // std::ifstream ifile(this->input_path);
-        // std::stringstream buffer;
-        // buffer << ifile.rdbuf();
-        // this->read_data = buffer.str();
-        // this->read_data.clear();
         this->read_data.clear();
         std::ifstream ifile(this->input_path, std::ios::in | std::ios::binary);
         ifile.unsetf(std::ios::skipws);
@@ -118,7 +114,6 @@ private:
         ifile.seekg(0, std::ios::beg);
 
         // reserve capacity
-        std::cout << (int)fileSize << std::endl;
         this->read_data.reserve(fileSize);
 
         // read the data:
@@ -164,12 +159,11 @@ private:
     }
     void MakeFrequencyMap()
     {
+        this->frequency_map.clear();
+        // Changing this made great time improvements
+        // There may be more optimization possible here
         for (const char &c : this->read_data)
-        {
-            if (this->frequency_map.find(c) == this->frequency_map.end())
-                this->frequency_map[c] = 0;
-            this->frequency_map[c] += 1;
-        }
+            this->frequency_map[c]++;
     }
     void FillMinHeap()
     {
@@ -202,6 +196,7 @@ private:
         if (root == nullptr)
             return;
 
+        // Default of \0 in Node is causing data loss, fix this
         if (root->ch != '\0')
         {
             this->codes[root->ch] = current_code;
@@ -237,14 +232,13 @@ private:
     {
         std::ofstream outfile;
         outfile.open(this->output_path, std::ios::out | std::ios::binary);
-        std::cout << "writing" << std::endl;
         for (unsigned int i = 0; i < this->write_data.size(); i += 8)
         {
             int b = stoi(this->write_data.substr(i, 8), 0, 2);
             outfile.write(reinterpret_cast<const char *>(&b), 1);
-            std::cout << "(" << i + 8 << "/" << this->write_data.size() << ")\r";
+            // std::cout << "(" << i + 8 << "/" << this->write_data.size() << ")\r";
         }
-        std::cout << std::endl;
+        // std::cout << std::endl;
         outfile.close();
     }
 };
@@ -253,8 +247,13 @@ int main(int argc, char *argv[])
 {
     HuffmanCompression hc;
     // hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/README.md");
+    auto start = std::chrono::high_resolution_clock::now();
     hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/big.txt");
-    hc.Decompress("/Users/james/Mahlet/Basic_Concole_App copy/big.bin",
-                  "/Users/james/Mahlet/Basic_Concole_App copy/big.out");
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::cout << "Compression took "
+              << std::chrono::duration_cast<std::chrono::seconds>(finish - start).count()
+              << " seconds\n";
+    // hc.Decompress("/Users/james/Mahlet/Basic_Concole_App copy/big.bin",
+                //   "/Users/james/Mahlet/Basic_Concole_App copy/big.out");
     return 0;
 }
