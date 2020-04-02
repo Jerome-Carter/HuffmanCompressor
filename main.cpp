@@ -64,9 +64,6 @@ public:
     }
     void Compress(const std::string &input_path)
     {
-        // ------------------------------------------------------------------------
-        // Break path down
-        // ------------------------------------------------------------------------
         this->input_path = input_path;
         std::size_t end_path = input_path.find_last_of("/\\");
         std::string path = input_path.substr(0, end_path);
@@ -85,7 +82,7 @@ public:
         this->min_heap.pop();
         PrintTree(root);
         std::string current_code = "";
-        GenerateHuffmanCodes(root, current_code, this->codes, this->reverse);
+        GenerateHuffmanCodes(root, current_code);
 
         EncodeData();
         PadData();
@@ -93,47 +90,13 @@ public:
 
         PrintCodes();
     }
-    void Decompress(const std::string &input_path)
+    void Decompress(const std::string &input_path, const std::string &output_path)
     {
         this->input_path = input_path;
+        this->output_path = output_path;
         ReadData();
-
-        char pad = this->read_data[0];
-
-        std::string decomp_data = "";
-        for (unsigned int i = 0; i < this->read_data.size(); i++)
-        {
-            char c = this->read_data[i];
-            std::string b = "";
-            for (char j = 0; j < 8; j++)
-            {
-                b.insert(0, (this->read_data[i] & 1 ? "1" : "0"));
-                this->read_data[i] >>= 1;
-            }
-            decomp_data += b;
-        }
-
-        std::string encoded = decomp_data;
-        encoded.erase(0, 8);
-        encoded.erase(encoded.size() - pad);
-
-        std::string current_code = "";
-        std::string decoded = "";
-        for (char b : encoded)
-        {
-            current_code += b;
-            if (this->reverse.find(current_code) != this->reverse.end())
-            {
-                char c = this->reverse[current_code];
-                decoded += std::bitset<8>(c).to_string();
-                current_code = "";
-            }
-        }
-
-        std::cout << decoded << std::endl;
-        // write data out
-        this->write_data = decoded;
-        this->output_path = input_path + ".txt";
+        ExtractEncodedData();
+        DecodeData();
         WriteData();
     }
 
@@ -144,23 +107,60 @@ private:
         // std::stringstream buffer;
         // buffer << ifile.rdbuf();
         // this->read_data = buffer.str();
+        // this->read_data.clear();
         this->read_data.clear();
         std::ifstream ifile(this->input_path, std::ios::in | std::ios::binary);
         ifile.unsetf(std::ios::skipws);
 
-        // get its size:
         std::streampos fileSize;
         ifile.seekg(0, std::ios::end);
         fileSize = ifile.tellg();
         ifile.seekg(0, std::ios::beg);
 
         // reserve capacity
+        std::cout << (int)fileSize << std::endl;
         this->read_data.reserve(fileSize);
 
         // read the data:
         this->read_data.insert(this->read_data.begin(),
                                std::istream_iterator<char>(ifile),
                                std::istream_iterator<char>());
+    }
+    void ExtractEncodedData() {
+        char pad_length = this->read_data[0];
+        std::string compressed_data = "";
+        for (unsigned int i = 0; i < this->read_data.size(); i++)
+        {
+            std::string b = "";
+            for (char j = 0; j < 8; j++)
+            {
+                b.insert(0, (this->read_data[i] & 1 ? "1" : "0"));
+                this->read_data[i] >>= 1;
+            }
+            compressed_data += b;
+        }
+
+        compressed_data.erase(0, 8);
+        compressed_data.erase(compressed_data.size() - pad_length);
+        this->encoded_data = compressed_data;
+    }
+    void DecodeData() {
+        this->write_data = "";
+        std::string current_code = "";
+        unsigned long long byte = 1;
+        for (char b : this->encoded_data)
+        {
+            current_code += b;
+            if (this->reverse.find(current_code) != this->reverse.end())
+            {
+                char c = this->reverse[current_code];
+                this->write_data += std::bitset<8>(c).to_string();
+                std::cout << "decoded word #" << byte << "\r";
+                byte++;
+                current_code = "";
+            }
+        }
+        std::cout << std::endl;
     }
     void MakeFrequencyMap()
     {
@@ -197,20 +197,20 @@ private:
             this->min_heap.push(merged);
         }
     }
-    void GenerateHuffmanCodes(Node *root, const std::string &current_code, std::map<char, std::string> &codes, std::map<std::string, char> &reverse_mapping)
+    void GenerateHuffmanCodes(Node *root, const std::string &current_code)
     {
         if (root == nullptr)
             return;
 
         if (root->ch != '\0')
         {
-            codes[root->ch] = current_code;
-            reverse_mapping[current_code] = root->ch;
+            this->codes[root->ch] = current_code;
+            this->reverse[current_code] = root->ch;
             return;
         }
 
-        GenerateHuffmanCodes(root->left, current_code + "0", codes, reverse_mapping);
-        GenerateHuffmanCodes(root->right, current_code + "1", codes, reverse_mapping);
+        GenerateHuffmanCodes(root->left, current_code + "0");
+        GenerateHuffmanCodes(root->right, current_code + "1");
     }
     void PrintCodes()
     {
@@ -237,6 +237,7 @@ private:
     {
         std::ofstream outfile;
         outfile.open(this->output_path, std::ios::out | std::ios::binary);
+        std::cout << "writing" << std::endl;
         for (unsigned int i = 0; i < this->write_data.size(); i += 8)
         {
             int b = stoi(this->write_data.substr(i, 8), 0, 2);
@@ -252,7 +253,8 @@ int main(int argc, char *argv[])
 {
     HuffmanCompression hc;
     // hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/README.md");
-    hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/Oooo.txt");
-    hc.Decompress("/Users/james/Mahlet/Basic_Concole_App copy/Oooo.bin");
+    hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/big.txt");
+    hc.Decompress("/Users/james/Mahlet/Basic_Concole_App copy/big.bin",
+                  "/Users/james/Mahlet/Basic_Concole_App copy/big.out");
     return 0;
 }
