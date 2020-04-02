@@ -22,6 +22,14 @@ struct Node
     }
 };
 
+void DeleteNode(Node* node)
+{
+    if (node == nullptr) return;
+    DeleteNode(node->left); 
+    DeleteNode(node->right);
+    delete node;  
+}
+
 // Thanks to GeeksForGeeks
 void PrintTree(Node *root, unsigned int indent = 0, unsigned int indent_size = 8)
 {
@@ -49,6 +57,7 @@ public:
 class HuffmanCompression
 {
 private:
+    Node* tree;
     std::string input_path;
     std::string output_path;
     std::string write_data;
@@ -61,7 +70,12 @@ private:
 
 public:
     HuffmanCompression()
+     : tree(nullptr)
     {
+    }
+    ~HuffmanCompression()
+    {
+        DeleteNode(tree);
     }
     void Compress(const std::string &input_path)
     {
@@ -79,11 +93,11 @@ public:
         MakeFrequencyMap();
         FillMinHeap();
         GenerateHuffmanTree();
-        Node *root = this->min_heap.top();
+        tree = this->min_heap.top();
         this->min_heap.pop();
         // PrintTree(root);
         std::string current_code = "";
-        GenerateHuffmanCodes(root, current_code);
+        GenerateHuffmanCodes(tree, current_code);
 
         EncodeData();
         PadData();
@@ -121,7 +135,8 @@ private:
                                std::istream_iterator<char>(ifile),
                                std::istream_iterator<char>());
     }
-    void ExtractEncodedData() {
+    void ExtractEncodedData()
+    {
         char pad_length = this->read_data[0];
         std::string compressed_data = "";
         for (unsigned int i = 0; i < this->read_data.size(); i++)
@@ -139,7 +154,8 @@ private:
         compressed_data.erase(compressed_data.size() - pad_length);
         this->encoded_data = compressed_data;
     }
-    void DecodeData() {
+    void DecodeData()
+    {
         this->write_data = "";
         std::string current_code = "";
         unsigned long long byte = 1;
@@ -223,8 +239,7 @@ private:
     {
         this->write_data = this->encoded_data;
         unsigned int pad_length = 8 - (this->write_data.size() % 8);
-        for (unsigned int i = 0; i < pad_length; i++)
-            this->write_data.append("0");
+        this->write_data.append(pad_length, '0');
         std::bitset<8> pad_binary(pad_length);
         this->write_data.insert(0, pad_binary.to_string());
     }
@@ -236,9 +251,7 @@ private:
         {
             int b = stoi(this->write_data.substr(i, 8), 0, 2);
             outfile.write(reinterpret_cast<const char *>(&b), 1);
-            // std::cout << "(" << i + 8 << "/" << this->write_data.size() << ")\r";
         }
-        // std::cout << std::endl;
         outfile.close();
     }
 };
@@ -248,12 +261,12 @@ int main(int argc, char *argv[])
     HuffmanCompression hc;
     // hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/README.md");
     auto start = std::chrono::high_resolution_clock::now();
-    hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/big.txt");
+    hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/main.cpp");
     auto finish = std::chrono::high_resolution_clock::now();
     std::cout << "Compression took "
               << std::chrono::duration_cast<std::chrono::seconds>(finish - start).count()
               << " seconds\n";
     // hc.Decompress("/Users/james/Mahlet/Basic_Concole_App copy/big.bin",
-                //   "/Users/james/Mahlet/Basic_Concole_App copy/big.out");
+    //               "/Users/james/Mahlet/Basic_Concole_App copy/big.out");
     return 0;
 }
