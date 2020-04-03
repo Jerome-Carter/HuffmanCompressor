@@ -11,13 +11,13 @@
 
 struct Node
 {
-    char ch = '\0';
+    char* ch = nullptr;
     unsigned long frequency = 0;
     Node *left = nullptr;
     Node *right = nullptr;
     friend std::ostream &operator<<(std::ostream &os, const Node &n)
     {
-        os << (n.ch != '\n' && n.ch != '\0' ? std::string(1, n.ch) : "") << (n.ch != '\0' ? "," : "") << n.frequency;
+        os << (*(n.ch) != '\n' && *(n.ch) != '\0' ? std::string(1, *(n.ch)) : "") << (*(n.ch) != '\0' ? "," : "") << n.frequency;
         return os;
     }
 };
@@ -27,6 +27,7 @@ void DeleteNode(Node* node)
     if (node == nullptr) return;
     DeleteNode(node->left); 
     DeleteNode(node->right);
+    delete node->ch;
     delete node;  
 }
 
@@ -93,11 +94,8 @@ public:
         MakeFrequencyMap();
         FillMinHeap();
         GenerateHuffmanTree();
-        tree = this->min_heap.top();
-        this->min_heap.pop();
-        // PrintTree(root);
         std::string current_code = "";
-        GenerateHuffmanCodes(tree, current_code);
+        GenerateHuffmanCodes(this->tree, current_code);
 
         EncodeData();
         PadData();
@@ -140,25 +138,17 @@ private:
         char pad_length = this->read_data[0];
         std::string compressed_data = "";
         for (unsigned int i = 0; i < this->read_data.size(); i++)
-        {
-            std::string b = "";
-            for (char j = 0; j < 8; j++)
-            {
-                b.insert(0, (this->read_data[i] & 1 ? "1" : "0"));
-                this->read_data[i] >>= 1;
-            }
-            compressed_data += b;
-        }
+            compressed_data += std::bitset<8>(this->read_data[i]).to_string();
 
         compressed_data.erase(0, 8);
-        compressed_data.erase(compressed_data.size() - pad_length);
+        if (pad_length > 0)
+            compressed_data.erase(compressed_data.size() - pad_length);
         this->encoded_data = compressed_data;
     }
     void DecodeData()
     {
         this->write_data = "";
         std::string current_code = "";
-        unsigned long long byte = 1;
         for (char b : this->encoded_data)
         {
             current_code += b;
@@ -166,12 +156,9 @@ private:
             {
                 char c = this->reverse[current_code];
                 this->write_data += std::bitset<8>(c).to_string();
-                std::cout << "decoded word #" << byte << "\r";
-                byte++;
                 current_code = "";
             }
         }
-        std::cout << std::endl;
     }
     void MakeFrequencyMap()
     {
@@ -186,7 +173,8 @@ private:
         for (const std::pair<char, unsigned long> &p : this->frequency_map)
         {
             Node *n = new Node;
-            n->ch = p.first;
+            n->ch = new char;
+            *(n->ch) = p.first;
             n->frequency = p.second;
             this->min_heap.push(n);
         }
@@ -206,6 +194,8 @@ private:
             merged->right = n2;
             this->min_heap.push(merged);
         }
+        this->tree = this->min_heap.top();
+        this->min_heap.pop();
     }
     void GenerateHuffmanCodes(Node *root, const std::string &current_code)
     {
@@ -213,10 +203,10 @@ private:
             return;
 
         // Default of \0 in Node is causing data loss, fix this
-        if (root->ch != '\0')
+        if (root->ch != nullptr)
         {
-            this->codes[root->ch] = current_code;
-            this->reverse[current_code] = root->ch;
+            this->codes[*(root->ch)] = current_code;
+            this->reverse[current_code] = *(root->ch);
             return;
         }
 
@@ -227,7 +217,7 @@ private:
     {
         for (std::map<std::string, char>::iterator i = this->reverse.begin(); i != this->reverse.end(); i++)
         {
-            std::cout << i->first << " " << i->second << "\n";
+            std::cout << i->first << " " << std::bitset<8>(i->second).to_string() << "\n";
         }
     }
     void EncodeData()
@@ -261,12 +251,16 @@ int main(int argc, char *argv[])
     HuffmanCompression hc;
     // hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/README.md");
     auto start = std::chrono::high_resolution_clock::now();
-    hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/main.cpp");
+    hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/app.out");
     auto finish = std::chrono::high_resolution_clock::now();
     std::cout << "Compression took "
-              << std::chrono::duration_cast<std::chrono::seconds>(finish - start).count()
-              << " seconds\n";
-    // hc.Decompress("/Users/james/Mahlet/Basic_Concole_App copy/big.bin",
-    //               "/Users/james/Mahlet/Basic_Concole_App copy/big.out");
+              << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count()
+              << " mseconds\n";
+    start = std::chrono::high_resolution_clock::now();
+    hc.Decompress("/Users/james/Mahlet/Basic_Concole_App copy/app.bin", "/Users/james/Mahlet/Basic_Concole_App copy/app.1.out");
+    finish = std::chrono::high_resolution_clock::now();
+    std::cout << "Decompression took "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count()
+              << " mseconds\n";
     return 0;
 }
