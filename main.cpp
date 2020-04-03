@@ -63,7 +63,7 @@ private:
     std::string output_path;
     std::string write_data;
     std::string encoded_data;
-    std::vector<char> read_data;
+    std::vector<char>* read_data;
     std::map<char, std::string> codes;
     std::map<std::string, char> reverse;
     std::map<char, unsigned long> frequency_map;
@@ -71,12 +71,13 @@ private:
 
 public:
     HuffmanCompression()
-     : tree(nullptr)
+     : tree(nullptr), read_data(nullptr)
     {
     }
     ~HuffmanCompression()
     {
         DeleteNode(tree);
+        delete read_data;
     }
     void Compress(const std::string &input_path)
     {
@@ -116,29 +117,17 @@ public:
 private:
     void ReadData()
     {
-        this->read_data.clear();
+        if (this->read_data != nullptr)
+            this->read_data->clear();
         std::ifstream ifile(this->input_path, std::ios::in | std::ios::binary);
-        ifile.unsetf(std::ios::skipws);
-
-        std::streampos fileSize;
-        ifile.seekg(0, std::ios::end);
-        fileSize = ifile.tellg();
-        ifile.seekg(0, std::ios::beg);
-
-        // reserve capacity
-        this->read_data.reserve(fileSize);
-
-        // read the data:
-        this->read_data.insert(this->read_data.begin(),
-                               std::istream_iterator<char>(ifile),
-                               std::istream_iterator<char>());
+        this->read_data = new std::vector<char>(std::istreambuf_iterator<char>(ifile), {});
     }
     void ExtractEncodedData()
     {
-        char pad_length = this->read_data[0];
+        char pad_length = this->read_data->at(0);
         std::string compressed_data = "";
-        for (unsigned int i = 0; i < this->read_data.size(); i++)
-            compressed_data += std::bitset<8>(this->read_data[i]).to_string();
+        for (unsigned int i = 0; i < this->read_data->size(); i++)
+            compressed_data += std::bitset<8>(this->read_data->at(i)).to_string();
 
         compressed_data.erase(0, 8);
         if (pad_length > 0)
@@ -165,7 +154,7 @@ private:
         this->frequency_map.clear();
         // Changing this made great time improvements
         // There may be more optimization possible here
-        for (const char &c : this->read_data)
+        for (const char &c : *(this->read_data))
             this->frequency_map[c]++;
     }
     void FillMinHeap()
@@ -222,7 +211,7 @@ private:
     }
     void EncodeData()
     {
-        for (char i : this->read_data)
+        for (char i : *(this->read_data))
             this->encoded_data.append(codes[i]);
     }
     void PadData()
@@ -251,16 +240,16 @@ int main(int argc, char *argv[])
     HuffmanCompression hc;
     // hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/README.md");
     auto start = std::chrono::high_resolution_clock::now();
-    hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/app.out");
+    hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/big.txt");
     auto finish = std::chrono::high_resolution_clock::now();
     std::cout << "Compression took "
               << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count()
-              << " mseconds\n";
+              << " milliseconds\n";
     start = std::chrono::high_resolution_clock::now();
-    hc.Decompress("/Users/james/Mahlet/Basic_Concole_App copy/app.bin", "/Users/james/Mahlet/Basic_Concole_App copy/app.1.out");
+    hc.Decompress("/Users/james/Mahlet/Basic_Concole_App copy/big.bin", "/Users/james/Mahlet/Basic_Concole_App copy/big.out");
     finish = std::chrono::high_resolution_clock::now();
     std::cout << "Decompression took "
               << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count()
-              << " mseconds\n";
+              << " milliseconds\n";
     return 0;
 }
