@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdlib.h>
+#include <stdio.h>
 #include <algorithm>
 #include <bits/stdc++.h>
 
@@ -15,6 +16,7 @@ class HuffmanCompression
 {
 private:
     Node *tree;
+    char pad_bits;
     std::string input_path;
     std::string output_path;
     std::string write_data;

@@ -31,13 +31,13 @@ int main(int argc, char *argv[])
     HuffmanCompression hc;
     // hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/README.md");
     auto start = std::chrono::high_resolution_clock::now();
-    hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/main.cpp");
+    hc.Compress("/Users/james/Mahlet/Basic_Concole_App copy/big.txt");
     auto finish = std::chrono::high_resolution_clock::now();
     std::cout << "Compression took "
               << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count()
               << " milliseconds\n";
     start = std::chrono::high_resolution_clock::now();
-    hc.Decompress("/Users/james/Mahlet/Basic_Concole_App copy/main.bin", "/Users/james/Mahlet/Basic_Concole_App copy/main.out");
+    hc.Decompress("/Users/james/Mahlet/Basic_Concole_App copy/big.bin", "/Users/james/Mahlet/Basic_Concole_App copy/big.out");
     finish = std::chrono::high_resolution_clock::now();
     std::cout << "Decompression took "
               << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count()

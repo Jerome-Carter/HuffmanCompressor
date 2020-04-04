@@ -42,7 +42,6 @@ void HuffmanCompression::Decompress(const std::string &input_path, const std::st
     this->input_path = input_path;
     this->output_path = output_path;
     ReadData();
-    ExtractEncodedData();
     DecodeData();
     WriteData();
 }
@@ -55,38 +54,25 @@ void HuffmanCompression::ReadData()
     this->read_data = new std::vector<char>(std::istreambuf_iterator<char>(ifile), {});
 }
 
-void HuffmanCompression::ExtractEncodedData()
-{
-    auto start = std::chrono::high_resolution_clock::now();
-    char pad_length = this->read_data->at(0);
-    std::string compressed_data = "";
-    for (unsigned int i = 0; i < this->read_data->size(); i++)
-        compressed_data += std::bitset<8>(this->read_data->at(i)).to_string();
-
-    compressed_data.erase(0, 8);
-    if (pad_length > 0)
-        compressed_data.erase(compressed_data.size() - pad_length);
-    this->encoded_data = compressed_data;
-    auto finish = std::chrono::high_resolution_clock::now();
-    std::cout << "Extracting encoded data took "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count()
-              << " milliseconds\n";
-}
-
 void HuffmanCompression::DecodeData()
 {
     auto start = std::chrono::high_resolution_clock::now();
+    std::vector<char> extracted = *(this->read_data);
+    this->pad_bits = extracted.at(0);
+    extracted.erase(extracted.begin());
+
     this->write_data = "";
     std::string current_code = "";
-    for (char b : this->encoded_data)
+    for (char b : extracted)
     {
-        current_code += b;
-        // count beats find. improved time by ~34%
-        if (this->reverse.count(current_code) == 1)
+        for (char i = 0; i < 8; i++)
         {
-            char c = this->reverse[current_code];
-            this->write_data += std::bitset<8>(c).to_string();
-            current_code = "";
+            current_code += ((b >> (7 - i)) & 1 ? "1" : "0");
+            if (this->reverse.count(current_code))
+            {
+                this->write_data += std::bitset<8>(this->reverse[current_code]).to_string();
+                current_code = "";
+            }
         }
     }
     auto finish = std::chrono::high_resolution_clock::now();
