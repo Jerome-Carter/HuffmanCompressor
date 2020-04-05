@@ -21,6 +21,7 @@ private:
     std::string output_path;
     std::string write_data;
     std::string encoded_data;
+    int shortest_code_length;
     std::vector<char> *read_data;
     std::map<char, std::string> codes;
     std::map<std::string, char> reverse;
