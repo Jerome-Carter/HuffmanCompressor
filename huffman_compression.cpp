@@ -1,7 +1,9 @@
 #include "huffman_compression.h"
 
 HuffmanCompression::HuffmanCompression()
-    : tree(nullptr), read_data(nullptr)
+    : tree(nullptr),
+      shortest_code_length(INT_MAX),
+      read_data(nullptr)
 {
 }
 
@@ -63,15 +65,20 @@ void HuffmanCompression::DecodeData()
 
     this->write_data = "";
     std::string current_code = "";
-    for (char b : extracted)
+    for (std::vector<char>::iterator it = extracted.begin(); it != extracted.end(); it++)
     {
-        for (char i = 0; i < 8; i++)
+        for (char i = 0; i < (it == extracted.end() - 1 ? 8 - this->pad_bits : 8); i++)
         {
-            current_code += ((b >> (7 - i)) & 1 ? "1" : "0");
-            if (this->reverse.count(current_code))
+            bool v = (*it >> (7 - i)) & 1;
+            current_code += (v ? "1" : "0");
+            // Code length search limitation nearly cut time in half
+            if (current_code.size() >= this->shortest_code_length)
             {
-                this->write_data += std::bitset<8>(this->reverse[current_code]).to_string();
-                current_code = "";
+                if (this->reverse.count(current_code))
+                {
+                    this->write_data += std::bitset<8>(this->reverse[current_code]).to_string();
+                    current_code.clear();
+                }
             }
         }
     }
@@ -131,6 +138,9 @@ void HuffmanCompression::GenerateHuffmanCodes(Node *root, const std::string &cur
     {
         this->codes[*(root->ch)] = current_code;
         this->reverse[current_code] = *(root->ch);
+        if (current_code.size() < this->shortest_code_length)
+            this->shortest_code_length = current_code.size();
+            return;
         return;
     }
 
